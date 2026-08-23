@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: email-verifier
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/health
+    disk:
+      # Job state and encrypted results must survive a redeploy.
+      name: verifier-data
+      mountPath: /app/server/data
+      sizeGB: 5
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AUTH_USER
+        value: marketing
+      # Set these in the Render dashboard — never commit them.
+      - key: AUTH_PASSWORD_HASH
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATA_ENCRYPTION_KEY
+        sync: false
+      - key: RETENTION_DAYS
+        value: "7"
+      # Outbound port 25 is blocked on Render, so this cannot work there anyway.
+      - key: SMTP_PROBE_ENABLED
+        value: "false"

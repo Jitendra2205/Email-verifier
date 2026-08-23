@@ -1,0 +1,38 @@
+{
+  "name": "email-verifier",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Bulk professional email verifier — confidence-scored, segment-aware.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -n api,web -c cyan,magenta \"node --watch server/src/index.js\" \"vite --config client/vite.config.js\"",
+    "dev:api": "node --watch server/src/index.js",
+    "dev:web": "vite --config client/vite.config.js",
+    "build": "vite build --config client/vite.config.js",
+    "start": "node server/src/index.js",
+    "sample": "node scripts/generate-sample.js",
+    "test": "node --test --test-timeout=120000 \"server/test/**/*.test.js\""
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "exceljs": "^4.4.0",
+    "express": "^4.21.2",
+    "mammoth": "^1.12.1",
+    "multer": "^2.0.2",
+    "papaparse": "^5.4.1",
+    "pdfjs-dist": "^6.2.108"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^6.0.7"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
+  }
+}

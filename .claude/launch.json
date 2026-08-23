@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "email-verifier",
+      "runtimeExecutable": "C:/Users/jiten/.local/node/node.exe",
+      "runtimeArgs": ["server/src/index.js"],
+      "port": 4310
+    }
+  ]
+}
