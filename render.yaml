@@ -2,13 +2,13 @@ services:
   - type: web
     name: email-verifier
     runtime: docker
-    plan: starter
+    plan: free
     healthCheckPath: /api/health
-    disk:
-      # Job state and encrypted results must survive a redeploy.
-      name: verifier-data
-      mountPath: /app/server/data
-      sizeGB: 5
+    # No persistent disk on the free plan — no card on file, no billing.
+    # Trade-off: server/data (the SQLite file and any uploaded-but-unprocessed
+    # rows) lives on the container's ephemeral filesystem. It is wiped on every
+    # redeploy, and on a restart after the free plan's idle sleep. Fine for a
+    # reviewer clicking through the app; not a place to leave a real run.
     envVars:
       - key: NODE_ENV
         value: production
