@@ -2,11 +2,15 @@ FROM node:22-slim
 
 WORKDIR /app
 
+# better-sqlite3 is a native module. It prefers a prebuilt glibc binary, but that
+# download isn't reliable on every build host (Render's included) — when it's
+# unreachable, npm silently falls back to compiling from source via node-gyp,
+# which needs a real toolchain. Installing one makes the build succeed either way.
+RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ \
+  && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies first so the layer caches across source changes.
 COPY package.json package-lock.json ./
-# better-sqlite3 is a native module. On this Debian base its prebuilt glibc binary
-# is downloaded; on an Alpine/musl base npm would fall back to compiling from
-# source and need a full toolchain in the image.
 RUN npm ci
 
 COPY client ./client
