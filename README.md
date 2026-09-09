@@ -8,6 +8,29 @@ Built against `Email_Verifier_PRD.md`.
 
 ---
 
+## Live demo
+
+**[email-verifier-xs64.onrender.com](https://email-verifier-xs64.onrender.com)**
+Login: `marketing` / `5xdcvu1T1nx`
+
+Two things about this specific instance, both explained in full under
+[Deployment](#deployment):
+
+- **Free tier, no persistent disk, by design** — this was a deliberate trade-off to
+  avoid putting a card on file for a review link, not a code limitation. The instance
+  sleeps after ~15 minutes idle (first request afterward can take up to a minute), and
+  uploaded jobs do not survive a redeploy or a spin-down/restart. `render.yaml` needs
+  only a disk and a paid plan added back to remove both.
+- **Nothing is pre-loaded**, for the same reason — a redeploy would wipe it anyway. CSV
+  samples of various sizes are in [`/sample`](sample); Excel, Word and PDF uploads all
+  work too and were tested extensively before this handoff (see
+  [Verified against the PRD's acceptance criteria](#verified-against-the-prds-acceptance-criteria)).
+
+The database holds synthetic sample data only — no real contact list has been loaded
+onto a public URL.
+
+---
+
 ## The one thing to understand first
 
 **This tool does not claim to verify mailbox-level deliverability, and it says so in
