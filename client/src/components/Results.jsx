@@ -1,17 +1,45 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { STATUS_META, STATUS_ORDER, formatNumber, formatPercent } from '../format.js';
 
 const SEGMENTS = ['CPA', 'EA', 'HR Professional', 'Other'];
+const NO_FILTERS = { status: 'all', segment: 'all', search: '', reason: '' };
 
 export default function Results({ api, meta, job, counts }) {
-  const [filters, setFilters] = useState({ status: 'all', segment: 'all', search: '', reason: '' });
+  const [filters, setFilters] = useState(NO_FILTERS);
   const [page, setPage] = useState(1);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(null);
+  const detailRef = useRef(null);
 
   const processed = counts?.processed || 0;
+
+  /**
+   * The stat cards, segment table and reason chips all filter the address table
+   * — which sits far enough down that the change lands off-screen on a laptop.
+   * Clicking then looked like nothing happened, so bring the result into view.
+   */
+  const filterAndReveal = useCallback((update) => {
+    setFilters((f) => ({ ...f, ...update(f) }));
+
+    // Scrolled directly rather than inside requestAnimationFrame: the panel is
+    // already mounted and its offset does not depend on the filter re-render,
+    // and rAF never fires while the tab is hidden — which silently dropped the
+    // scroll altogether.
+    const target = detailRef.current;
+    if (!target) return;
+    const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const before = window.scrollY;
+    target.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+    if (!smooth) return;
+    // Smooth scrolling is a silent no-op in some engines and embedded views: it
+    // returns normally and never moves. Verify, and fall back to an instant
+    // jump — a filter whose result stays off-screen reads as broken.
+    setTimeout(() => {
+      if (window.scrollY === before) target.scrollIntoView({ behavior: 'auto', block: 'start' });
+    }, 250);
+  }, []);
 
   // Debounce the search box; everything else fires immediately.
   useEffect(() => {
@@ -40,6 +68,19 @@ export default function Results({ api, meta, job, counts }) {
       .map((name) => ({ name, ...(bySegment[name] || { total: 0, valid: 0, risky: 0, invalid: 0, disposable: 0 }) }))
       .filter((r) => r.total > 0);
   }, [counts]);
+
+  // Reason has no dropdown of its own, so it is the one filter a user could not
+  // otherwise see or undo from beside the table.
+  const activeFilters = useMemo(() => {
+    const out = [];
+    if (filters.status !== 'all') out.push({ key: 'status', cleared: 'all', label: STATUS_META[filters.status].label });
+    if (filters.segment !== 'all') out.push({ key: 'segment', cleared: 'all', label: filters.segment });
+    if (filters.reason) {
+      out.push({ key: 'reason', cleared: '', label: meta?.reasonLabels?.[filters.reason] || filters.reason });
+    }
+    if (filters.search) out.push({ key: 'search', cleared: '', label: `“${filters.search}”` });
+    return out;
+  }, [filters, meta]);
 
   const topReasons = useMemo(() => {
     const entries = Object.entries(counts?.byReason || {})
@@ -91,13 +132,17 @@ export default function Results({ api, meta, job, counts }) {
             return (
               <button
                 key={key}
-                className={`stat ${STATUS_META[key].tone}${filters.status === key ? ' selected' : ''}`}
-                onClick={() => setFilters((f) => ({ ...f, status: f.status === key ? 'all' : key }))}
+                className={`stat ${STATUS_META[key].tone}`}
+                aria-pressed={filters.status === key}
+                onClick={() => filterAndReveal((f) => ({ status: f.status === key ? 'all' : key }))}
                 title={STATUS_META[key].blurb}
               >
                 <span className="stat-value">{formatNumber(value)}</span>
                 <span className="stat-label">{STATUS_META[key].label}</span>
                 <span className="stat-pct">{formatPercent(value, processed)}</span>
+                <span className="stat-filter-hint">
+                  {filters.status === key ? 'Filtering — click to clear' : 'Click to filter'}
+                </span>
               </button>
             );
           })}
@@ -136,7 +181,8 @@ export default function Results({ api, meta, job, counts }) {
                   <td>
                     <button
                       className="linkish"
-                      onClick={() => setFilters((f) => ({ ...f, segment: f.segment === row.name ? 'all' : row.name }))}
+                      aria-pressed={filters.segment === row.name}
+                      onClick={() => filterAndReveal((f) => ({ segment: f.segment === row.name ? 'all' : row.name }))}
                     >
                       {row.name}
                     </button>
@@ -160,7 +206,8 @@ export default function Results({ api, meta, job, counts }) {
                 <button
                   key={code}
                   className={`reason-chip${filters.reason === code ? ' selected' : ''}`}
-                  onClick={() => setFilters((f) => ({ ...f, reason: f.reason === code ? '' : code }))}
+                  aria-pressed={filters.reason === code}
+                  onClick={() => filterAndReveal((f) => ({ reason: f.reason === code ? '' : code }))}
                 >
                   {meta?.reasonLabels?.[code] || code}
                   <span className="count">{formatNumber(count)}</span>
@@ -171,7 +218,7 @@ export default function Results({ api, meta, job, counts }) {
         )}
       </section>
 
-      <section className="panel">
+      <section className="panel" ref={detailRef}>
         <header className="panel-head">
           <h3 className="section-title flush">Address detail</h3>
           <div className="filters">
@@ -189,16 +236,29 @@ export default function Results({ api, meta, job, counts }) {
               <option value="all">All segments</option>
               {segmentRows.map((r) => <option key={r.name} value={r.name}>{r.name}</option>)}
             </select>
-            {(filters.reason || filters.status !== 'all' || filters.segment !== 'all' || filters.search) && (
-              <button
-                className="ghost"
-                onClick={() => setFilters({ status: 'all', segment: 'all', search: '', reason: '' })}
-              >
-                Clear
-              </button>
+            {activeFilters.length > 0 && (
+              <button className="ghost" onClick={() => setFilters(NO_FILTERS)}>Clear</button>
             )}
           </div>
         </header>
+
+        {activeFilters.length > 0 && (
+          <div className="active-filters">
+            <span>Filtered by</span>
+            {activeFilters.map((f) => (
+              <span key={f.key} className="filter-tag">
+                {f.label}
+                <button
+                  onClick={() => setFilters((prev) => ({ ...prev, [f.key]: f.cleared }))}
+                  aria-label={`Remove ${f.label} filter`}
+                  title={`Remove ${f.label} filter`}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
 
         {error && <div className="alert bad">{error}</div>}
 
@@ -225,7 +285,14 @@ export default function Results({ api, meta, job, counts }) {
                     <tr
                       key={`${row.rowNumber}-${row.email}`}
                       className={expanded === row.rowNumber ? 'expanded' : ''}
+                      tabIndex={0}
+                      aria-expanded={expanded === row.rowNumber}
                       onClick={() => setExpanded(expanded === row.rowNumber ? null : row.rowNumber)}
+                      onKeyDown={(e) => {
+                        if (e.key !== 'Enter' && e.key !== ' ') return;
+                        e.preventDefault(); // Space would scroll the page instead.
+                        setExpanded(expanded === row.rowNumber ? null : row.rowNumber);
+                      }}
                     >
                       <td className="mono">
                         {row.email}

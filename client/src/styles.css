@@ -150,12 +150,24 @@ input:focus, select:focus, button:focus-visible, .button:focus-visible {
   top: 0;
   z-index: 10;
 }
-.brand { display: flex; align-items: center; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .brand .mark {
   width: 26px; height: 26px; border-radius: 6px;
+  flex: none;
   background: linear-gradient(135deg, var(--accent), #7aa2ff);
 }
+.brand strong { white-space: nowrap; }
 .topbar-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+/* On a phone the status meta wrapped the brand onto two lines and pushed the
+   mark out of alignment, costing ~200px before any content. The retention and
+   probing state are repeated on the upload panel, so they can go here. */
+@media (max-width: 720px) {
+  .topbar { padding: 10px 14px; gap: 10px; }
+  .topbar .brand-sub,
+  .topbar .topbar-meta,
+  .topbar .topbar-user { display: none; }
+}
 
 .layout {
   flex: 1;
@@ -344,6 +356,8 @@ input:focus, select:focus, button:focus-visible, .button:focus-visible {
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
 }
+/* These are filter controls, not read-outs. They looked identical whether or not
+   they did anything on click, so nobody discovered the filtering. */
 .stat {
   display: flex;
   flex-direction: column;
@@ -354,8 +368,29 @@ input:focus, select:focus, button:focus-visible, .button:focus-visible {
   border: 1px solid var(--line);
   background: var(--muted-bg);
   text-align: left;
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
 }
-.stat.selected { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.stat:hover { border-color: var(--line-strong); background: var(--panel); }
+.stat:active { transform: translateY(1px); }
+.stat[aria-pressed="true"] {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  background: var(--panel);
+}
+.stat-filter-hint {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--ink-2);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.stat:hover .stat-filter-hint,
+.stat:focus-visible .stat-filter-hint,
+.stat[aria-pressed="true"] .stat-filter-hint { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .stat, .stat-filter-hint { transition: none; }
+  .stat:active { transform: none; }
+}
 .stat-value { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 .stat-label { font-size: 12px; font-weight: 600; }
 .stat-pct { font-size: 11px; color: var(--ink-2); }
@@ -404,8 +439,29 @@ table.data td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertica
 table.data tbody tr:last-child td { border-bottom: 0; }
 table.data.results tbody tr { cursor: pointer; }
 table.data.results tbody tr:hover { background: var(--muted-bg); }
-table.data.results tr.expanded .signals { white-space: normal; }
-.signals { color: var(--ink-2); font-size: 12px; max-width: 420px; }
+table.data.results tbody tr:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: var(--muted-bg);
+}
+/* Rows toggle .expanded on click. That used to override a `nowrap` that was
+   never set, so clicking a row changed nothing at all — the signals column was
+   already fully wrapped. Clamp it here so the expand has something to reveal. */
+.signals {
+  color: var(--ink-2);
+  font-size: 12px;
+  max-width: 420px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+table.data.results tr.expanded .signals {
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  overflow: visible;
+}
 .suggestion { margin-top: 3px; color: var(--warn); }
 
 .score { display: inline-flex; align-items: center; gap: 6px; position: relative; }
@@ -417,6 +473,34 @@ table.data.results tr.expanded .signals { white-space: normal; }
 
 .filters { display: flex; gap: 8px; flex-wrap: wrap; }
 .filters input[type="search"] { min-width: 200px; }
+
+/* A reason-chip filter has no matching dropdown, so without this the table just
+   silently showed fewer rows with nothing on screen saying why. */
+.active-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px 3px 9px;
+  border-radius: 99px;
+  background: var(--muted-bg);
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  font-weight: 500;
+}
+.filter-tag button {
+  border: 0; background: none; padding: 0 2px; margin: 0;
+  color: var(--ink-2); cursor: pointer; font-size: 14px; line-height: 1;
+}
+.filter-tag button:hover { color: var(--bad); }
 
 .pager {
   display: flex;

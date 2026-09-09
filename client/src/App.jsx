@@ -158,7 +158,7 @@ export default function App() {
           <span className="mark" aria-hidden="true" />
           <div>
             <strong>Email Verifier</strong>
-            <span className="muted small block">mycpe ONE · marketing ops</span>
+            <span className="muted small block brand-sub">mycpe ONE · marketing ops</span>
           </div>
         </div>
         <div className="topbar-right">
@@ -168,12 +168,12 @@ export default function App() {
             </span>
           )}
           {meta && (
-            <span className="muted small">
+            <span className="muted small topbar-meta">
               Retention {meta.retentionDays}d · SMTP probing{' '}
               {meta.smtpProbeAvailable ? 'available' : 'disabled'}
             </span>
           )}
-          <span className="muted small">{session.user}</span>
+          <span className="muted small topbar-user">{session.user}</span>
           <button
             className="ghost"
             onClick={() => api.logout().then(() => setSession({ loading: false, authenticated: false, user: null }))}
