@@ -11,7 +11,7 @@ Built against `Email_Verifier_PRD.md`.
 ## Live demo
 
 **[email-verifier-xs64.onrender.com](https://email-verifier-xs64.onrender.com)**
-Login: `marketing` / `5xdcvu1T1nx`
+Login: credentials are shared on request (not published here).
 
 Two things about this specific instance, both explained in full under
 [Deployment](#deployment):
